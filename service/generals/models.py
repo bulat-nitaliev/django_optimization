@@ -25,3 +25,4 @@ class Subscription(models.Model):
     client = models.ForeignKey(to=Client, on_delete=models.PROTECT, related_name='subscriptions')
     service = models.ForeignKey(to=Service, on_delete=models.PROTECT, related_name='subscriptions')
     plan = models.ForeignKey(to=Plan, on_delete=models.PROTECT, related_name='subscriptions')
+    price = models.PositiveIntegerField(default=0)

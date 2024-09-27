@@ -4,9 +4,11 @@ services:
       context: .
     ports:
       ["7000:7000"]
+    networks: 
+      - net
     volumes:
       - ./service:/service
-
+    restart: unless-stopped
     environment:
       - DB_HOST=database
       - DB_NAME=dbname
@@ -25,10 +27,17 @@ services:
       - POSTGRES_DB=dbname
       - POSTGRES_USER=dbuser
       - POSTGRES_PASSWORD=pass
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
+
+    networks: 
+      - net
 
   redis:
     image: redis:7.0.5-alpine
     hostname: redis
+    networks: 
+        - net
 
   worker:
     build:
@@ -42,7 +51,29 @@ services:
       - redis
     depends_on:
       - redis
+    networks: 
+      - net
 
+  flower:
+    build:
+      context: .
+    hostname: flower
+    entrypoint: celery
+    command: -A celery_app.app flower
+    volumes:
+      - ./service:/service
+    links:
+      - redis
+    depends_on:
+      - redis
+    ports:
+      - 5555:5555
+    networks: 
+      - net
+
+networks:
+  net:
+    driver: bridge
 
 
 
