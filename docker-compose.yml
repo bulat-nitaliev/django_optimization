@@ -3,11 +3,12 @@ services:
     build:
       context: .
     ports:
-      ["7000:7000"]
+      - 7000:7000
     networks: 
       - net
     volumes:
       - ./service:/service
+      - "postgres:/data/postgres"
     restart: unless-stopped
     environment:
       - DB_HOST=database
@@ -15,11 +16,11 @@ services:
       - DB_USER=dbuser
       - DB_PASS=pass
 
-    command: >
-      sh -c "python manage.py runserver 0.0.0.0:7000"
-
+    command: sh -c "python manage.py runserver 0.0.0.0:7000"
+    
     depends_on:
       - database
+      
 
   database:
     image: postgres:14.6-alpine
@@ -28,10 +29,10 @@ services:
       - POSTGRES_USER=dbuser
       - POSTGRES_PASSWORD=pass
     volumes:
-      - ./postgres_data:/var/lib/postgresql
-
+      - "postgres:/data/postgres"
     networks: 
       - net
+    restart: unless-stopped
 
   redis:
     image: redis:7.0.5-alpine
@@ -49,8 +50,35 @@ services:
       - ./service:/service
     links:
       - redis
+    environment:
+      - DB_HOST=database
+      - DB_NAME=dbname
+      - DB_USER=dbuser
+      - DB_PASS=pass
     depends_on:
       - redis
+      - database
+    networks: 
+      - net
+
+  worker2:
+    build:
+      context: .
+    hostname: worker2
+    entrypoint: celery
+    command: -A celery_app.app worker --loglevel=info
+    volumes:
+      - ./service:/service
+    links:
+      - redis
+    environment:
+      - DB_HOST=database
+      - DB_NAME=dbname
+      - DB_USER=dbuser
+      - DB_PASS=pass
+    depends_on:
+      - redis
+      - database
     networks: 
       - net
 
@@ -74,7 +102,8 @@ services:
 networks:
   net:
     driver: bridge
-
+volumes:
+  postgres:
 
 
 
